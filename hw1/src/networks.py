@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from torch import nn
-import torch.functional as F
+import torch.nn.functional as F
 from typing import Tuple, Optional
 from torch.distributions.categorical import Categorical
 
@@ -14,6 +14,18 @@ HIDDEN_DIMENSION: int = 64
 def tensor(x: np.array, type=torch.float32, device=DEVICE) -> torch.Tensor:
     return torch.as_tensor(x, dtype=type, device=device)
 
+class Model(nn.Module):
+    def __init__(self, in_dimension, hidden_dimension, out_dimension):
+        super().__init__()
+        self.input = nn.Linear(in_dimension,hidden_dimension)
+        self.fc2 = nn.Linear(hidden_dimension,hidden_dimension//2)
+        self.output = nn.Linear(hidden_dimension//2,out_dimension)
+
+    def forward(self, x):
+        x = F.relu(self.input(x))
+        x = F.relu(self.fc2(x))
+        x = self.output(x)
+        return x
 
 def network(
         in_dimension: int, hidden_dimension: int, out_dimension: int
@@ -29,7 +41,8 @@ def network(
     Returns:
         nn.Module: The constructed neural network model.
     """
-    pass
+    network = Model(in_dimension, hidden_dimension, out_dimension)
+    return network
 
 
 class Policy(nn.Module):
@@ -57,7 +70,7 @@ class Policy(nn.Module):
         TODO: Implement the forward method to compute the network output for the given state.
         You can use the self.network to forward the input.
         """
-        pass
+        return self.network(tensor(state))
 
     def pi(self, state: np.ndarray) -> Categorical:
         """
@@ -71,7 +84,10 @@ class Policy(nn.Module):
 
         TODO: Implement the pi method to create a Categorical distribution based on the network's output.
         """
-        pass
+        logits = self.forward(state)
+        probs = F.softmax(logits)
+        distribution = Categorical(probs=probs)
+        return distribution
 
     def sample(self, state: np.ndarray) -> Tuple[int, torch.Tensor]:
         """
@@ -85,7 +101,10 @@ class Policy(nn.Module):
 
         TODO: Implement the sample method to sample an action and compute its log probability.
         """
-        pass
+        distribution = self.pi(state)
+        action = distribution.sample()
+        log_prob = distribution.log_prob(action)
+        return (action.item(), log_prob)
 
     def sample_multiple(self, states: np.ndarray) -> Tuple[int, torch.Tensor]:
         """
@@ -99,7 +118,13 @@ class Policy(nn.Module):
 
         TODO: Implement the sample_multiple method to handle multiple states.
         """
-        pass
+        actions =  []
+        log_probs = []
+        for state in states:
+            (action, log_prob) = self.sample(state)
+            actions.append(action)
+            log_probs.append(log_prob)
+        return (actions, log_probs)
 
     def action(self, state: np.ndarray) -> torch.Tensor:
         """
@@ -113,8 +138,9 @@ class Policy(nn.Module):
 
         TODO: Implement the action method to return an action based on the sampled action.
         """
-        pass
-
+        distribution = self.pi(state)
+        action = distribution.sample()
+        return action.item()
 
 class ValueFunctionQ(nn.Module):
     def __init__(
