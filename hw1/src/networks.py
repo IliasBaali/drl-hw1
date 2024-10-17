@@ -203,7 +203,7 @@ class ValueFunctionQ(nn.Module):
         TODO: Implement the greedy method to select the best action based on Q-values.
         This method is intended for greedy sampling.
         """
-        Q_values = self.__call__(state)
+        Q_values = self(state)
         action = torch.argmax(Q_values)
         return action
 
@@ -235,6 +235,6 @@ class ValueFunctionQ(nn.Module):
         TODO: Implement the V method to compute the expected value of the state under the policy.
         This method is intended to return V(s).
         """
-        action = policy.action(state)
-        V = self.__call__(state,action)
+        distribution = policy.pi(state)
+        V = torch.sum(distribution.probs*self(state))
         return V.item()

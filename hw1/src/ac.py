@@ -62,8 +62,15 @@ def optimize_Q(
     targets = torch.zeros(size=(batch_size, 1), device=DEVICE)
     with torch.no_grad():
         # Hint: Compute the target Q-values
-        pass
-
+        targets = rewards + gamma*target_Q(valid_next_states,target_Q.action(states))
+        
+    #forward pass
+    y_pred = Q(states,actions)
+    loss = loss_Q(y_pred,targets)
+    
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
 
 
@@ -86,7 +93,11 @@ def optimize_policy(
 
     with torch.no_grad():
         # Hint: Advantages
-        pass
+        advantages = Q(states, policy.action(states))-Q.V(states,policy)
+    loss = loss_pi(log_probabilities,advantages)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
 
 
@@ -107,6 +118,12 @@ def train_one_epoch(
     state, info = env.reset()
 
     for t in count():
+        
+        #Sample an action from the policy
+        (action,log_prob) = policy.sample(state)
+
+        #Take the action in the environment
+        next_state, reward, terminated, truncated, info = env.step(action)
 
         # TODO: Complete the train_one_epoch for actor-critic algorithm
 
@@ -114,10 +131,18 @@ def train_one_epoch(
             next_state = None
 
         # TODO: Store the transition in memory
-
+        
         # Hint: Use replay buffer!
+        memory.push(state, action, next_state, reward)
         # Hint: Check if replay buffer has enough samples
-
+        if len(memory) >= memory.batch_size:
+            break
+        
+        state = next_state
+    
+    sampled_batch = memory.sample()
+    optimize_Q(Q, target_Q, policy, gamma, sampled_batch, optimizer_Q)
+    optimize_policy(policy, Q, sampled_batch, optimizer_pi)
 
     # Placeholder return value (to be replaced with actual calculation)
     return 0.0

@@ -79,7 +79,6 @@ def train_one_epoch(
     loss = loss/epoch_total_timesteps
     optimizer.zero_grad()
     loss.backward()
-    print('Loss:', loss.grad)
     # TODO: Perform backpropagation and update the policy parameters
     optimizer.step()
 
