@@ -170,7 +170,10 @@ class ValueFunctionQ(nn.Module):
         TODO: Implement the __call__ method to return Q-values for the given state and action.
         This method is intended to compute Q(s, a).
         """
-        pass
+        Q_values = self(state)
+        if action != None:
+            return Q_values[action]
+        return Q_values
 
     def forward(self, state: np.ndarray) -> torch.Tensor:
         """
@@ -185,7 +188,7 @@ class ValueFunctionQ(nn.Module):
         TODO: Implement the forward method to compute Q-values for the given state.
         You can use the self.network to forward the input.
         """
-        pass
+        return self.network(tensor(state))
 
     def greedy(self, state: np.ndarray) -> torch.Tensor:
         """
@@ -200,7 +203,9 @@ class ValueFunctionQ(nn.Module):
         TODO: Implement the greedy method to select the best action based on Q-values.
         This method is intended for greedy sampling.
         """
-        pass
+        Q_values = self.__call__(state)
+        action = torch.argmax(Q_values)
+        return action
 
     def action(self, state: np.ndarray) -> torch.Tensor:
         """
@@ -214,7 +219,7 @@ class ValueFunctionQ(nn.Module):
 
         TODO: Implement the action method to return the greedy action.
         """
-        pass
+        return self.greedy(state)
 
     def V(self, state: np.ndarray, policy: Policy) -> float:
         """
@@ -230,4 +235,6 @@ class ValueFunctionQ(nn.Module):
         TODO: Implement the V method to compute the expected value of the state under the policy.
         This method is intended to return V(s).
         """
-        pass
+        action = policy.action(state)
+        V = self.__call__(state,action)
+        return V.item()
