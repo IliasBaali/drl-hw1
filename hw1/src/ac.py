@@ -62,10 +62,11 @@ def optimize_Q(
     targets = torch.zeros(size=(batch_size, 1), device=DEVICE)
     with torch.no_grad():
         # Hint: Compute the target Q-values
-        targets = rewards + gamma*target_Q(valid_next_states,target_Q.action(states))
+        targets = rewards 
+        targets[nonterminal_mask] += gamma*target_Q(valid_next_states)[torch.arange(actions_.shape[1]),actions_.squeeze()]
         
     #forward pass
-    y_pred = Q(states,actions)
+    y_pred = Q(states)[torch.arange(batch_size),actions.squeeze()]
     loss = loss_Q(y_pred,targets)
     
     optimizer.zero_grad()
@@ -93,7 +94,7 @@ def optimize_policy(
 
     with torch.no_grad():
         # Hint: Advantages
-        advantages = Q(states, policy.action(states))-Q.V(states,policy)
+        advantages = Q(states)[torch.arange(states.shape[0]),actions.squeeze()]-Q.V(states,policy)
     loss = loss_pi(log_probabilities,advantages)
     optimizer.zero_grad()
     loss.backward()
@@ -135,14 +136,17 @@ def train_one_epoch(
         # Hint: Use replay buffer!
         memory.push(state, action, next_state, reward)
         # Hint: Check if replay buffer has enough samples
-        if len(memory) >= memory.batch_size:
-            break
-        
         state = next_state
-    
-    sampled_batch = memory.sample()
-    optimize_Q(Q, target_Q, policy, gamma, sampled_batch, optimizer_Q)
-    optimize_policy(policy, Q, sampled_batch, optimizer_pi)
+        if terminated or truncated:
+            break
+
+    if len(memory) < memory.batch_size:
+        print(len(memory),memory.batch_size)
+        return
+    batch_transitions = memory.sample()
+    batch = Transition(*zip(*batch_transitions))
+    optimize_Q(Q, target_Q, policy, gamma, batch, optimizer_Q)
+    optimize_policy(policy, Q, batch, optimizer_pi)
 
     # Placeholder return value (to be replaced with actual calculation)
     return 0.0

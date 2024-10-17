@@ -124,7 +124,7 @@ class Policy(nn.Module):
             (action, log_prob) = self.sample(state)
             actions.append(action)
             log_probs.append(log_prob)
-        return (actions, log_probs)
+        return (tensor(actions, type=int), torch.cat([t.view(1) for t in log_probs]))
 
     def action(self, state: np.ndarray) -> torch.Tensor:
         """
@@ -170,7 +170,7 @@ class ValueFunctionQ(nn.Module):
         TODO: Implement the __call__ method to return Q-values for the given state and action.
         This method is intended to compute Q(s, a).
         """
-        Q_values = self(state)
+        Q_values = self.forward(state)
         if action != None:
             return Q_values[action]
         return Q_values
