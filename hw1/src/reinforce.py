@@ -49,6 +49,7 @@ def train_one_epoch(
         # Reset the environment and get a fresh observation
         state, info = env.reset()
 
+        episode_log_probs = []
         # Loop through timesteps until the episode is done (or the max is hit)
         for t in count():
             epoch_total_timesteps += 1
@@ -64,22 +65,28 @@ def train_one_epoch(
             episode_reward += reward
             
             # TODO: Store the log probability of the action
-            epoch_log_probability_actions.append(log_prob)
+            episode_log_probs.append(log_prob)
 
             # Finish the action loop if this episode is done
             if done:
                 # TODO: Assign the episode reward to each timestep in the episode
-                epoch_action_rewards = [episode_reward]*epoch_total_timesteps
+                epoch_action_rewards.append([episode_reward])
+                epoch_log_probability_actions.append(episode_log_probs)    
                 break
             
     # TODO: Calculate the policy gradient loss
-    loss = tensor(0)
+    
+    loss_ = torch.stack([loss(torch.stack(epoch_log_probability_actions[i]), tensor(epoch_action_rewards[i])) for i in range(len(epoch_action_rewards))])
+    loss_ = loss_.mean()
+    '''loss = tensor(0)
     for i in range(epoch_total_timesteps):
-        loss -= tensor(epoch_action_rewards[i])*epoch_log_probability_actions[i]
-    loss = loss/epoch_total_timesteps
-    optimizer.zero_grad()
-    loss.backward()
+        loss -= tensor(epoch_action_rewards[i])*epoch_log_probability_actions[i]'''
+    #loss = loss(torch.stack(epoch_log_probability_actions), tensor(epoch_action_rewards))
+    #loss = loss/epoch_total_timesteps
+    
     # TODO: Perform backpropagation and update the policy parameters
+    optimizer.zero_grad()
+    loss_.backward()
     optimizer.step()
 
     # Placeholder return values (to be replaced with actual calculations)

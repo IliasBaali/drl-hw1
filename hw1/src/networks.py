@@ -17,13 +17,21 @@ def tensor(x: np.array, type=torch.float32, device=DEVICE) -> torch.Tensor:
 class Model(nn.Module):
     def __init__(self, in_dimension, hidden_dimension, out_dimension):
         super().__init__()
+        self.state_max = tensor([1.5, 1.5,5., 5., 3.14 ,5., 1., 1. ])
+        self.state_min = tensor([-1.5, -1.5, -5. ,-5., -3.14, -5., -0., -0. ])
+        #self.norm = nn.BatchNorm1d(in_dimension)
         self.input = nn.Linear(in_dimension,hidden_dimension)
-        self.fc2 = nn.Linear(hidden_dimension,hidden_dimension//2)
-        self.output = nn.Linear(hidden_dimension//2,out_dimension)
+        #self.fc2 = nn.Linear(hidden_dimension,hidden_dimension//2)
+        self.output = nn.Linear(hidden_dimension,out_dimension)
+        #torch.nn.init.xavier_uniform_(self.input.weight)
+        #torch.nn.init.xavier_uniform_(self.fc2.weight)
+        #torch.nn.init.xavier_uniform_(self.output.weight)
 
     def forward(self, x):
+        #x = self.norm(x)
+        x = x/(self.state_max-self.state_min)
         x = F.relu(self.input(x))
-        x = F.relu(self.fc2(x))
+        #x = F.relu(self.fc2(x))
         x = self.output(x)
         return x
 
