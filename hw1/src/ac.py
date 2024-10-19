@@ -151,9 +151,7 @@ def train_one_epoch(
             optimize_policy(policy, Q, batch, optimizer_pi)
         state = next_state
         if terminated or truncated:
-            break
-
-    
+            break      
 
     #memory.clear()
     

@@ -42,6 +42,12 @@ def eps_greedy_sample(Q: ValueFunctionQ, state: np.array):
     # You can copy from your previous implementation
     # With probability eps, select a random action
     # With probability (1 - eps), select the best action using greedy_sample
+    Q_values = Q(state)
+    best = torch.argmax(Q_values).item()
+    if np.random.rand()>eps:
+        return best
+    else:
+        return np.random.choice(np.arange(Q_values.shape[0])[np.arange(Q_values.shape[0])!=best])
 
 
 def optimize_Q(
@@ -76,7 +82,15 @@ def optimize_Q(
     # Initialize targets with zeros
     targets = torch.zeros(size=(memory.batch_size, 1), device=DEVICE)
     with torch.no_grad():
-        pass  # Students are expected to compute the target Q-values here
+        targets = rewards
+        targets[nonterminal_mask]  +=  gamma*torch.amax(target_Q(valid_next_states),1)
+        
+    y_pred = Q(states)[torch.arange(actions.shape[0]),actions.squeeze()]
+    loss_ = loss(y_pred,targets)
+    
+    optimizer.zero_grad()
+    loss_.backward()
+    optimizer.step()
 
 
 
@@ -99,8 +113,22 @@ def train_one_epoch(
 
     for t in count():
         # TODO: Complete the train_one_epoch for dqn algorithm
-        pass
+        action = eps_greedy_sample(Q, state)
+       
+        next_state, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
+        
+        if terminated:
+            next_state = None
 
+        memory.push(state, action, next_state, reward)
+
+        if len(memory) >= memory.batch_size:
+            optimize_Q(Q, target_Q, gamma, memory, optimizer)
+        
+        state = next_state
+        if done:
+            break
 
     # Placeholder return value (to be replaced with actual calculation)
     return episode_reward

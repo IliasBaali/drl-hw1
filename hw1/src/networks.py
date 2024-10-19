@@ -227,7 +227,7 @@ class ValueFunctionQ(nn.Module):
 
         TODO: Implement the action method to return the greedy action.
         """
-        return self.greedy(state)
+        return self.greedy(state).item()
 
     def V(self, state: np.ndarray, policy: Policy) -> float:
         """
